@@ -35,6 +35,8 @@ html,body{margin:0;background:var(--desk);color:var(--ink);font-family:var(--fon
 table{border-collapse:collapse;width:100%;table-layout:fixed}
 .frame{border:0.5mm solid var(--line)}
 .frame + .frame{border-top:none}
+.frame.top{border-bottom:none}
+.frame.top td{border-bottom:none}
 td{border:0.25mm solid var(--line);padding:0 1.2mm;text-align:center;vertical-align:middle;word-break:keep-all}
 td.dot-b{border-bottom-style:dotted}
 td.dot-r{border-right-style:dotted}
@@ -97,15 +99,27 @@ textarea.in{resize:none;height:17mm;text-align:left;font-size:9.5pt;line-height:
 .signer{display:flex;justify-content:center;align-items:center;gap:3mm}
 .signer .in{width:34mm}
 .notes{font-size:9pt;margin-top:2mm;line-height:1.5}
-.notes p{margin:0;white-space:nowrap;letter-spacing:-0.3px}
-.notes p.fit{font-size:8.6pt;letter-spacing:-0.45px}
+.notes p{margin:0;white-space:nowrap;font-size:8.6pt;letter-spacing:-0.45px}
+
+/* 도장 */
+.seal{position:relative;display:inline-block}
+.seal img{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:15mm;width:auto;max-width:22mm;pointer-events:none}
+.toolbar .opt{display:flex;align-items:center;gap:4px;font-size:14px}
+.toolbar .sep{width:1px;background:#ccd;margin:0 4px}
+/* 뒷면(영수증) */
+.back-label{width:210mm;margin:24px auto -8px;font-size:13px;color:#556;font-weight:700}
+.page.back{padding:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.page.back img{display:block;max-width:210mm;max-height:297mm}
+body.rot .page.back .rot-box{transform:rotate(180deg)}
 
 /* ── 인쇄 ── */
 @page{size:A4 portrait;margin:0}
 @media print{
   html,body{background:#fff}
   .toolbar,.dt-pop,.cal,.no-print,.cal-btn{display:none!important}
-  .page{margin:0;box-shadow:none;width:210mm;height:297mm;min-height:0;overflow:hidden}
+  .page{margin:0;box-shadow:none;width:210mm;height:297mm;min-height:0;overflow:hidden;break-after:page;page-break-after:always}
+  .page:last-of-type{break-after:auto;page-break-after:auto}
+  .back-label{display:none!important}
   .in{background:transparent!important;box-shadow:none!important}
   .in::placeholder{color:transparent}
 }
@@ -120,7 +134,16 @@ textarea.in{resize:none;height:17mm;text-align:left;font-size:9.5pt;line-height:
   <button class="primary" id="btnPrint" type="button">🖨 인쇄</button>
   <button id="btnNew" type="button">새로 작성</button>
   <button id="btnReset" type="button">전체 초기화</button>
-  <div class="hint">노란 칸에 입력하세요. 입력 내용은 이 컴퓨터 브라우저에 자동 저장됩니다.<br>‘새로 작성’은 소속·직급·성명만 남기고 지우고, ‘전체 초기화’는 모두 지웁니다.</div>
+  <span class="sep"></span>
+  <button id="btnSeal" type="button">도장 올리기</button>
+  <button id="btnSealDel" type="button" hidden>도장 지우기</button>
+  <input type="file" id="sealFile" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
+  <span class="sep"></span>
+  <button id="btnPdf" type="button">영수증 PDF 불러오기</button>
+  <button id="btnPdfDel" type="button" hidden>영수증 빼기</button>
+  <label class="opt" id="rotOpt" hidden><input type="checkbox" id="rot180"> 뒷면 거꾸로(180°) 인쇄</label>
+  <input type="file" id="pdfFile" accept="application/pdf" hidden>
+  <div class="hint">노란 칸에 입력하세요. 입력 내용은 이 컴퓨터 브라우저에 자동 저장됩니다.<br>‘새로 작성’은 소속·직급·성명·도장만 남기고 지우고, ‘전체 초기화’는 도장까지 모두 지웁니다.<br>영수증을 뒷면에 인쇄하려면 인쇄 창에서 <b>양면 인쇄 → 짧은 쪽 가장자리로 넘기기</b>를 고르세요. 그 설정이 없으면 ‘뒷면 거꾸로 인쇄’를 켜고 일반 양면 인쇄를 하세요.</div>
 </div>
 
 <div class="page">
@@ -128,14 +151,14 @@ textarea.in{resize:none;height:17mm;text-align:left;font-size:9.5pt;line-height:
   <h1 class="form-title">여비 정산 신청서</h1>
 
   <!-- 1. 소속/직급/성명 -->
-  <table class="frame">
-    <colgroup><col style="width:17mm"><col style="width:54mm"><col style="width:20mm"><col style="width:36mm"><col style="width:12mm"><col></colgroup>
+  <table class="frame top">
+    <colgroup><col style="width:17mm"><col style="width:50mm"><col style="width:20mm"><col style="width:36mm"><col style="width:16mm"><col></colgroup>
     <tr style="height:13mm">
       <td class="lbl">소속</td>
       <td><input class="in" id="org" data-keep></td>
       <td class="lbl">직급<br>(직위)</td>
       <td><input class="in" id="rank" data-keep></td>
-      <td class="lbl">성<br>명</td>
+      <td class="lbl">성명</td>
       <td><input class="in" id="name" data-keep></td>
     </tr>
   </table>
@@ -242,7 +265,7 @@ textarea.in{resize:none;height:17mm;text-align:left;font-size:9.5pt;line-height:
           <button type="button" class="cal-btn" id="signBtn" title="날짜 선택">📅</button>
         </div>
 
-        <div class="signer">신청인 성명 <input class="in" id="signName" readonly tabindex="-1"> (인)</div>
+        <div class="signer">신청인 성명 <input class="in" id="signName" readonly tabindex="-1"> <span class="seal">(인)<img id="sealImg" alt="" hidden></span></div>
       </td>
     </tr>
   </table>
@@ -252,7 +275,9 @@ textarea.in{resize:none;height:17mm;text-align:left;font-size:9.5pt;line-height:
     <p>※ 정산하는 여비항목 중 운임은 국내여행에 한함. 다만, 국내․외 항공운임은 별지 제5호 서식에 의함</p>
   </div>
 </div>
+<div id="backPages"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 (function(){
   const $ = id => document.getElementById(id);
@@ -434,8 +459,64 @@ textarea.in{resize:none;height:17mm;text-align:left;font-size:9.5pt;line-height:
       delete btn.dataset.armed; btn.textContent=label; run();
     });
   }
-  armed($('btnNew'),'새로 작성',()=>clearForm(false));
-  armed($('btnReset'),'전체 초기화',()=>clearForm(true));
+  armed($('btnNew'),'새로 작성',()=>{ clearForm(false); clearPdf(); });
+  armed($('btnReset'),'전체 초기화',()=>{ clearForm(true); clearPdf(); setSeal(''); });
+
+  // ── 도장 ──
+  const SEAL_KEY='ysh-travel-seal-v1';
+  function setSeal(data){
+    const img=$('sealImg');
+    if(data){ img.src=data; img.hidden=false; $('btnSealDel').hidden=false; $('btnSeal').textContent='도장 바꾸기'; }
+    else { img.removeAttribute('src'); img.hidden=true; $('btnSealDel').hidden=true; $('btnSeal').textContent='도장 올리기'; }
+    try{ data? localStorage.setItem(SEAL_KEY,data) : localStorage.removeItem(SEAL_KEY); }catch(_){}
+  }
+  $('btnSeal').addEventListener('click',()=>$('sealFile').click());
+  $('btnSealDel').addEventListener('click',()=>setSeal(''));
+  $('sealFile').addEventListener('change',e=>{
+    const f=e.target.files[0]; e.target.value=''; if(!f) return;
+    const rd=new FileReader();
+    rd.onload=()=>{ const im=new Image(); im.onload=()=>{
+      const k=Math.min(1,400/Math.max(im.width,im.height)); const c=document.createElement('canvas');
+      c.width=Math.round(im.width*k); c.height=Math.round(im.height*k);
+      c.getContext('2d').drawImage(im,0,0,c.width,c.height); setSeal(c.toDataURL('image/png'));
+    }; im.src=rd.result; };
+    rd.readAsDataURL(f);
+  });
+  try{ const sd=localStorage.getItem(SEAL_KEY); if(sd) setSeal(sd); }catch(_){}
+
+  // ── 영수증 PDF → 뒷면 ──
+  const backBox=$('backPages');
+  function clearPdf(){ backBox.innerHTML=''; $('btnPdfDel').hidden=true; $('rotOpt').hidden=true; $('btnPdf').textContent='영수증 PDF 불러오기'; }
+  $('btnPdf').addEventListener('click',()=>$('pdfFile').click());
+  $('btnPdfDel').addEventListener('click',clearPdf);
+  $('rot180').addEventListener('change',()=>document.body.classList.toggle('rot',$('rot180').checked));
+  $('pdfFile').addEventListener('change',async e=>{
+    const f=e.target.files[0]; e.target.value=''; if(!f) return;
+    const lib=window.pdfjsLib;
+    if(!lib){ $('btnPdf').textContent='PDF 기능을 불러오지 못했습니다(인터넷 연결 확인)'; return; }
+    lib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    $('btnPdf').textContent='불러오는 중…';
+    try{
+      const pdf=await lib.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise;
+      backBox.innerHTML='';
+      for(let n=1;n<=pdf.numPages;n++){
+        const page=await pdf.getPage(n);
+        const base=page.getViewport({scale:1});                 // 원래 크기(pt)
+        const vp=page.getViewport({scale:3});                    // 선명하게 렌더링
+        const c=document.createElement('canvas'); c.width=Math.ceil(vp.width); c.height=Math.ceil(vp.height);
+        const ctx=c.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,c.width,c.height);
+        await page.render({canvasContext:ctx,viewport:vp}).promise;
+        const lab=document.createElement('div'); lab.className='back-label no-print';
+        lab.textContent=`▼ 뒷면 영수증 (${n}/${pdf.numPages}쪽)`;
+        const pg=document.createElement('div'); pg.className='page back';
+        const box=document.createElement('div'); box.className='rot-box';
+        const img=new Image(); img.src=c.toDataURL('image/jpeg',0.92);
+        img.style.width=base.width+'pt'; img.style.height=base.height+'pt';
+        box.appendChild(img); pg.appendChild(box); backBox.append(lab,pg);
+      }
+      $('btnPdf').textContent='다른 PDF로 바꾸기'; $('btnPdfDel').hidden=false; $('rotOpt').hidden=false;
+    }catch(err){ clearPdf(); $('btnPdf').textContent='PDF를 열 수 없습니다. 다시 선택'; }
+  });
 
   // 인쇄
   $('btnPrint').addEventListener('click',()=>{ pop.hidden=true; docPop.hidden=true; closeCal(); window.print(); });
